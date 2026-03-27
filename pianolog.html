@@ -1,0 +1,2189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>PianoLog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0d0f12;--bg2:#161920;--bg3:#1e222b;
+  --mint:#7ee8c4;--blue:#5b9cf6;--orange:#f6a35b;
+  --red:#f65b5b;--violet:#c084fc;--yellow:#fde68a;
+  --text:#e8eaf0;--text2:#8892a4;--border:#2a2f3d;
+}
+html,body{height:100%;height:100dvh;overflow:hidden}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:row}
+
+/* ── SIDEBAR (desktop) ── */
+.sidebar{
+  width:260px;flex-shrink:0;
+  background:var(--bg2);border-right:1px solid var(--border);
+  height:100dvh;display:flex;flex-direction:column;
+  overflow:hidden;
+}
+.sidebar-logo{
+  padding:22px 20px 16px;
+  font-size:19px;font-weight:700;
+  background:linear-gradient(90deg,var(--mint),var(--blue));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  flex-shrink:0;
+}
+.sidebar .add-song-btn-main{
+  margin:0 16px 10px;
+}
+.sidebar .add-song-form{
+  margin:0 16px 10px;
+}
+.sidebar .song-list{
+  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:0 10px 16px;
+}
+.sidebar .song-list::-webkit-scrollbar{width:4px}
+.sidebar .song-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ── MAIN WRAP ── */
+.main-wrap{flex:1;display:flex;flex-direction:column;min-width:0;height:100dvh;overflow:hidden}
+
+/* ── HEADER ── */
+.header{
+  padding:14px 18px 0;
+  display:flex;align-items:center;gap:12px;
+  flex-shrink:0;
+}
+.menu-btn{
+  width:36px;height:36px;border-radius:10px;
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--text2);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:background .15s;
+}
+.menu-btn:active{background:#252a36}
+.header-song-name{
+  flex:1;font-size:15px;font-weight:600;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  text-align:center;
+}
+
+/* ── SCROLL AREA ── */
+.scroll-area{
+  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding-bottom:calc(72px + env(safe-area-inset-bottom,0px));
+}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{
+  position:relative;
+  background:rgba(13,15,18,.95);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--border);
+  display:flex;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  flex-shrink:0;
+}
+.nav-tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:10px 0 8px;gap:4px;border:none;background:transparent;
+  color:var(--text2);font-size:11px;font-weight:500;font-family:inherit;
+  cursor:pointer;transition:color .2s;
+}
+.nav-tab.active{color:var(--mint)}
+.nav-icon{font-size:20px;line-height:1}
+
+/* ── PAGES ── */
+.page{display:none}
+.page.active{display:block}
+
+/* ── NO SONG PAGE ── */
+.no-song-wrap{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:60vh;padding:40px 24px;text-align:center;gap:16px;
+}
+.no-song-icon{font-size:56px;opacity:.4}
+.no-song-title{font-size:20px;font-weight:700;color:var(--text)}
+.no-song-sub{font-size:14px;color:var(--text2);line-height:1.7}
+.no-song-cta{
+  margin-top:8px;padding:14px 28px;
+  border-radius:14px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--mint),var(--blue));
+  color:#0d0f12;font-size:15px;font-weight:700;font-family:inherit;
+  letter-spacing:.3px;transition:opacity .2s;
+}
+.no-song-cta:active{opacity:.82}
+
+/* ── TABS ── */
+.tabs{display:flex;margin:13px 20px 0;background:var(--bg3);border-radius:12px;padding:4px;gap:4px}
+.tab{flex:1;text-align:center;padding:9px 4px;border-radius:9px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .2s;border:none;background:transparent;font-family:inherit}
+.tab.active{background:linear-gradient(135deg,rgba(91,156,246,.18),rgba(126,232,196,.18));color:var(--mint);border:1px solid rgba(126,232,196,.28)}
+
+/* ── MODE PANELS ── */
+.mode-panel{display:none;padding:11px 20px 0}
+.mode-panel.active{display:block}
+.measure-row{display:flex;gap:10px;align-items:flex-end}
+.measure-field{flex:1}
+.field-label{font-size:11px;color:var(--text2);margin-bottom:5px;font-weight:600;letter-spacing:.6px;text-transform:uppercase}
+.measure-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:18px;font-family:'DM Mono',monospace;padding:9px 12px;outline:none;transition:border-color .2s;text-align:center}
+.measure-input:focus{border-color:var(--blue)}
+.measure-sep{color:var(--text2);font-size:20px;padding-bottom:9px}
+.practice-badge{margin-top:10px;background:rgba(91,156,246,.1);border:1px solid rgba(91,156,246,.28);border-radius:10px;padding:9px 14px;font-size:14px;color:var(--blue);font-weight:500;display:flex;align-items:center;gap:8px}
+
+/* ── THRESHOLD ── */
+.threshold-section{padding:11px 20px 0}
+.threshold-row{display:flex;align-items:center;gap:10px}
+.threshold-label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+input[type=range]{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--bg3);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--mint);cursor:pointer;box-shadow:0 0 8px rgba(126,232,196,.5)}
+.threshold-val{font-family:'DM Mono',monospace;font-size:13px;color:var(--mint);min-width:28px;text-align:right;font-weight:500}
+
+/* ── WAVEFORM ── */
+.wave-section{padding:12px 20px 0}
+.wave-wrap{position:relative;background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;height:220px}
+canvas{width:100%;height:100%;display:block}
+.wave-hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text2);font-size:14px;pointer-events:none}
+.wave-hint .big{font-size:30px;opacity:.35}
+.rec-badge{position:absolute;top:10px;right:12px;display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace;opacity:0;transition:opacity .2s}
+.rec-dot{width:8px;height:8px;border-radius:50%;background:var(--red);animation:blink 1s infinite}
+.rec-badge.show{opacity:1}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.1}}
+
+/* ── MARKER TOOLTIP ── */
+.marker-tip{
+  display:none;margin:6px 0 0;
+  padding:7px 12px;border-radius:10px;font-size:13px;line-height:1.45;
+  border-left:3px solid var(--mint);background:rgba(126,232,196,.07);
+  color:var(--text);min-height:34px;
+}
+.marker-tip.show{display:block}
+
+/* ── LEGEND ── */
+.wave-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:7px;padding:0 2px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+/* ── TIMER ── */
+.timer-disp{font-family:'DM Mono',monospace;font-size:13px;color:var(--text2);text-align:center;margin-top:6px;height:20px;line-height:20px}
+
+/* ── PLAYBACK BAR ── */
+.playback-bar{display:none;margin-top:10px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;gap:10px;align-items:center}
+.playback-bar.show{display:flex}
+.play-btn{width:38px;height:38px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--mint),var(--blue));border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .1s}
+.play-btn:active{transform:scale(.88)}
+.seek-wrap{flex:1;display:flex;flex-direction:column;gap:4px}
+.seek-bar{width:100%;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--bg3);outline:none;cursor:pointer}
+.seek-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--mint);cursor:pointer;box-shadow:0 0 6px rgba(126,232,196,.5)}
+.seek-times{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2)}
+
+/* ── PERM ERROR ── */
+.perm-error{display:none;margin:10px 20px 0;background:rgba(246,91,91,.08);border:1px solid rgba(246,91,91,.35);border-radius:12px;padding:13px 15px;font-size:13px;line-height:1.7;color:#f6a3a3}
+.perm-error.show{display:block}
+
+/* ── REC BUTTON ── */
+.rec-section{padding:16px 20px 14px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.rec-btn{width:72px;height:72px;border-radius:50%;background:var(--red);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 10px rgba(246,91,91,.14),0 6px 24px rgba(246,91,91,.4);transition:transform .1s,box-shadow .25s}
+.rec-btn:active{transform:scale(.91)}
+.rec-btn.recording{animation:recPulse 1.1s infinite}
+@keyframes recPulse{0%,100%{box-shadow:0 0 0 10px rgba(246,91,91,.18),0 6px 24px rgba(246,91,91,.45)}50%{box-shadow:0 0 0 18px rgba(246,91,91,.04),0 6px 32px rgba(246,91,91,.25)}}
+.rec-label{font-size:13px;color:var(--text2);font-weight:500}
+
+/* ── RESULTS ── */
+.results{padding:0 20px 0;display:none;flex-direction:column;gap:12px}
+.results-title{font-size:16px;font-weight:700;color:var(--text);padding-top:4px}
+.star-bar{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 16px}
+.sec-label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.6px;text-transform:uppercase;margin-bottom:9px}
+.stars{display:flex;gap:5px;margin-bottom:7px}
+.star{font-size:26px;filter:grayscale(1);opacity:.25;transition:all .35s}
+.star.on{filter:none;opacity:1}
+.star-desc{font-size:14px;color:var(--text);font-weight:500;line-height:1.45}
+.card{border-radius:14px;padding:14px 16px}
+.card-green{border:1px solid rgba(126,232,196,.38);background:rgba(126,232,196,.04)}
+.card-orange{border:1px solid rgba(246,163,91,.38);background:rgba(246,163,91,.04)}
+.card-blue{border:1px solid rgba(91,156,246,.38);background:rgba(91,156,246,.04)}
+.card-violet{border:1px solid rgba(192,132,252,.38);background:rgba(192,132,252,.04)}
+.card-green .sec-label{color:var(--mint)}
+.card-orange .sec-label{color:var(--orange)}
+.card-blue .sec-label{color:var(--blue)}
+.card-violet .sec-label{color:var(--violet)}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-item{background:var(--bg3);border-radius:10px;padding:10px 12px}
+.stat-val{font-family:'DM Mono',monospace;font-size:21px;font-weight:500;color:var(--mint);line-height:1.2}
+.stat-unit{font-size:12px;color:var(--text2);margin-left:2px}
+.stat-lbl{font-size:12px;color:var(--text2);margin-top:3px}
+.praise-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:14px;line-height:1.5}
+.praise-item:last-child{margin-bottom:0}
+.p-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.p-text{color:var(--text)}
+.expr-item{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.expr-item:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+.expr-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.expr-body{flex:1;min-width:0}
+.expr-label{font-size:14px;font-weight:600;color:var(--text);line-height:1.3}
+.expr-sub{font-size:12px;color:var(--text2);margin-top:2px;line-height:1.4}
+.expr-time{font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);margin-top:3px}
+.jump-btn{flex-shrink:0;background:var(--bg3);border:1px solid var(--border);color:var(--mint);padding:5px 10px;border-radius:8px;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap;transition:background .15s;font-weight:500}
+.jump-btn:active{background:#252a36}
+
+/* ── NEW REC BUTTON ── */
+.new-rec-row{display:none;padding:4px 20px 0}
+.new-rec-row.show{display:block}
+.new-rec-btn{
+  width:100%;padding:13px;border-radius:14px;cursor:pointer;
+  background:linear-gradient(135deg,rgba(126,232,196,.15),rgba(91,156,246,.15));
+  border:1.5px solid rgba(126,232,196,.4);
+  color:var(--mint);font-size:15px;font-weight:600;font-family:inherit;
+  letter-spacing:.3px;transition:background .2s;
+}
+.new-rec-btn:active{background:rgba(126,232,196,.25)}
+
+/* ── LIST PAGE ── */
+.list-page-header{padding:20px 20px 10px}
+.list-page-title{font-size:18px;font-weight:700;color:var(--text);line-height:1.3}
+.list-page-sub{font-size:13px;color:var(--text2);margin-top:3px}
+.list-sort-row{padding:0 20px 12px;display:flex;gap:8px}
+.sort-pill{
+  padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500;
+  font-family:inherit;cursor:pointer;border:1px solid var(--border);
+  background:var(--bg3);color:var(--text2);transition:all .15s;
+}
+.sort-pill.active{background:rgba(126,232,196,.15);border-color:rgba(126,232,196,.4);color:var(--mint)}
+.list-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:60px 20px;gap:12px;color:var(--text2);font-size:14px;line-height:1.7;text-align:center;
+}
+.list-empty-icon{font-size:48px;opacity:.35}
+.rec-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+  margin:0 20px 12px;overflow:hidden;
+}
+.rec-card-head{
+  padding:12px 14px 10px;
+}
+.rec-card-row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.rec-card-num{font-size:14px;font-weight:700;color:var(--text)}
+.rec-card-badges{display:flex;align-items:center;gap:6px}
+.crown-badge{
+  background:linear-gradient(135deg,rgba(253,230,138,.2),rgba(246,163,91,.2));
+  border:1px solid rgba(253,230,138,.5);
+  color:var(--yellow);font-size:12px;font-weight:700;
+  padding:3px 8px;border-radius:6px;
+}
+.rec-card-date{font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)}
+.rec-card-stats{
+  display:flex;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--text2);align-items:center;
+}
+.rec-card-stars{font-size:15px}
+.rec-card-stat-val{
+  font-family:'DM Mono',monospace;font-size:13px;color:var(--text);
+}
+.rec-card-expand{
+  width:100%;padding:8px;background:transparent;border:none;border-top:1px solid var(--border);
+  color:var(--text2);font-size:13px;font-family:inherit;cursor:pointer;
+  transition:background .15s;
+}
+.rec-card-expand:active{background:rgba(255,255,255,.03)}
+.rec-card-detail{
+  display:none;border-top:1px solid var(--border);padding:14px;
+  background:var(--bg3);
+}
+.rec-card-detail.open{display:block}
+.mini-wave-wrap{
+  height:80px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;margin-bottom:12px;
+}
+.detail-section{margin-bottom:12px}
+.detail-section:last-child{margin-bottom:0}
+.detail-section-label{
+  font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--text2);margin-bottom:7px;
+}
+.detail-tag{
+  display:inline-block;font-size:12px;padding:3px 9px;border-radius:6px;margin:0 4px 5px 0;
+}
+.detail-tag-expr{background:rgba(192,132,252,.12);color:var(--violet);border:1px solid rgba(192,132,252,.3)}
+.detail-tag-praise{background:rgba(126,232,196,.1);color:var(--mint);border:1px solid rgba(126,232,196,.25)}
+.detail-tag-weak{background:rgba(246,163,91,.1);color:var(--orange);border:1px solid rgba(246,163,91,.25)}
+
+/* ── ADD SONG FORM ── */
+.add-song-btn-main{
+  width:100%;padding:10px 14px;border-radius:10px;border:none;cursor:pointer;
+  background:rgba(126,232,196,.12);border:1px solid rgba(126,232,196,.3);
+  color:var(--mint);font-size:14px;font-weight:600;font-family:inherit;
+  transition:background .15s;
+}
+.add-song-btn-main:active{background:rgba(126,232,196,.22)}
+.add-song-form{display:none}
+.add-song-input{
+  width:100%;background:var(--bg3);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:15px;font-family:inherit;
+  padding:10px 12px;outline:none;transition:border-color .2s;margin-bottom:8px;
+}
+.add-song-input:focus{border-color:var(--mint)}
+.add-song-input::placeholder{color:var(--text2)}
+.add-song-btns{display:flex;gap:8px}
+.add-song-btns button{
+  flex:1;padding:9px;border-radius:9px;border:none;cursor:pointer;
+  font-size:14px;font-weight:600;font-family:inherit;transition:opacity .15s;
+}
+.add-song-btns button:first-child{background:var(--mint);color:#0d0f12}
+.add-song-btns button:last-child{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+.add-song-btns button:active{opacity:.8}
+
+/* ── SONG LIST ITEMS ── */
+.song-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 10px;border-radius:10px;cursor:pointer;
+  transition:background .15s;user-select:none;
+  margin-bottom:2px;
+}
+.song-item:active{background:rgba(255,255,255,.04)}
+.song-item.active-song{background:rgba(126,232,196,.1);border:1px solid rgba(126,232,196,.25)}
+.song-item-info{flex:1;min-width:0}
+.song-item-name{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.song-item-sub{font-size:12px;color:var(--text2);margin-top:1px}
+.song-item-del{
+  width:28px;height:28px;border-radius:7px;flex-shrink:0;
+  background:transparent;border:none;cursor:pointer;
+  color:var(--text2);font-size:16px;
+  display:flex;align-items:center;justify-content:center;
+  transition:color .15s,background .15s;
+}
+.song-item-del:active{color:var(--red);background:rgba(246,91,91,.1)}
+
+/* ── DRAWER (mobile) ── */
+.drawer-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0);
+  z-index:200;pointer-events:none;
+  transition:background .28s;
+}
+.drawer-overlay.open{background:rgba(0,0,0,.6);pointer-events:all}
+.drawer{
+  position:absolute;bottom:0;left:0;right:0;
+  background:var(--bg2);border-radius:20px 20px 0 0;
+  padding:0 0 calc(env(safe-area-inset-bottom,0px));
+  transform:translateY(100%);
+  transition:transform .3s cubic-bezier(.32,.72,0,1);
+  max-height:80dvh;display:flex;flex-direction:column;
+}
+.drawer-overlay.open .drawer{transform:translateY(0)}
+.drawer-handle{
+  width:36px;height:4px;border-radius:2px;
+  background:var(--border);margin:10px auto 0;flex-shrink:0;
+}
+.drawer-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 18px 10px;flex-shrink:0;
+}
+.drawer-title{font-size:16px;font-weight:700;color:var(--text)}
+.drawer-close{
+  width:30px;height:30px;border-radius:50%;
+  background:var(--bg3);border:none;color:var(--text2);
+  font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.drawer .add-song-btn-main{margin:0 16px 10px;width:calc(100% - 32px)}
+.drawer .add-song-form{margin:0 16px 10px;padding:0}
+.drawer .song-list{
+  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:0 10px calc(16px + env(safe-area-inset-bottom,0px));
+}
+
+/* ── CALENDAR PAGE ── */
+.cal-page{padding:16px 20px 24px}
+.streak-banner{
+  display:none;
+  background:linear-gradient(135deg,rgba(246,163,91,.15),rgba(246,91,91,.1));
+  border:1px solid rgba(246,163,91,.4);
+  border-radius:14px;padding:13px 16px;margin-bottom:14px;
+  font-size:16px;font-weight:700;color:var(--orange);text-align:center;
+}
+.cal-nav{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;
+}
+.cal-nav-btn{
+  background:var(--bg3);border:1px solid var(--border);color:var(--text2);
+  width:36px;height:36px;border-radius:50%;font-size:18px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-family:inherit;transition:background .15s;
+}
+.cal-nav-btn:active{background:#252a36}
+.cal-month-label{font-size:17px;font-weight:700;color:var(--text)}
+.cal-grid{
+  display:grid;grid-template-columns:repeat(7,1fr);gap:3px;
+}
+.cal-dow{
+  text-align:center;font-size:11px;color:var(--text2);
+  padding:6px 0 4px;font-weight:600;
+}
+.cal-day{
+  aspect-ratio:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;
+  border-radius:10px;position:relative;
+}
+.cal-day.empty{background:transparent}
+.cal-day.today .day-num{
+  background:rgba(91,156,246,.25);border:1.5px solid var(--blue);
+  color:var(--blue);border-radius:50%;
+  width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+}
+.cal-day.has-practice{background:rgba(126,232,196,.08)}
+.day-num{
+  font-size:13px;font-weight:500;color:var(--text2);
+  width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+}
+.day-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--mint);box-shadow:0 0 6px rgba(126,232,196,.6);
+}
+.cal-day.today.has-practice .day-num{
+  background:rgba(126,232,196,.25);border-color:var(--mint);color:var(--mint);
+}
+
+/* ── RHYTHM GRAPH ── */
+.graph-section{padding:0 20px 20px}
+.graph-wrap{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:14px;padding:14px 16px;
+}
+.graph-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;
+}
+.graph-title{font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--mint)}
+.graph-badge{
+  font-size:12px;font-weight:700;border-radius:20px;padding:3px 10px;
+}
+.graph-badge-up{background:rgba(126,232,196,.15);color:var(--mint);border:1px solid rgba(126,232,196,.4)}
+.graph-badge-dn{background:rgba(246,163,91,.1);color:var(--orange);border:1px solid rgba(246,163,91,.3)}
+.graph-canvas-wrap{position:relative}
+canvas.graph-cvs{width:100%;height:150px;display:block}
+
+/* ── DESKTOP overrides ── */
+@media (min-width:768px){
+  .menu-btn{display:none}
+  .header-song-name{text-align:left}
+  .drawer-overlay{display:none}
+  .bottom-nav .nav-tab span{font-size:12px}
+}
+
+/* ── MOBILE overrides ── */
+@media (max-width:767px){
+  .sidebar{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR (desktop only) ── -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">🎹 PianoLog</div>
+  <button class="add-song-btn-main" onclick="showAddSongInput('sidebar')">＋ 曲を追加</button>
+  <div class="add-song-form" id="addSongFormSidebar">
+    <input class="add-song-input" id="addSongInputSidebar" type="text" placeholder="曲名を入力..." maxlength="50">
+    <div class="add-song-btns">
+      <button onclick="confirmAddSong('sidebar')">追加</button>
+      <button onclick="hideAddSongInput('sidebar')">キャンセル</button>
+    </div>
+  </div>
+  <div class="song-list" id="sidebarSongList"></div>
+</aside>
+
+<!-- ── MAIN WRAP ── -->
+<div class="main-wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <button class="menu-btn" id="menuBtn" onclick="toggleDrawer()" aria-label="メニュー">
+      <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+        <rect y="0" width="18" height="2" rx="1" fill="currentColor"/>
+        <rect y="6" width="18" height="2" rx="1" fill="currentColor"/>
+        <rect y="12" width="18" height="2" rx="1" fill="currentColor"/>
+      </svg>
+    </button>
+    <div class="header-song-name" id="headerSongName">曲を選んでください</div>
+  </div>
+
+  <!-- SCROLL AREA -->
+  <div class="scroll-area" id="scrollArea">
+
+    <!-- ── PAGE: NO SONG ── -->
+    <div class="page active" id="pageNoSong">
+      <div class="no-song-wrap">
+        <div class="no-song-icon">🎹</div>
+        <div class="no-song-title">曲を選んでください</div>
+        <div class="no-song-sub">練習する曲を追加して<br>録音を始めましょう！</div>
+        <button class="no-song-cta" onclick="openDrawer()">＋ 曲を追加する</button>
+      </div>
+    </div>
+
+    <!-- ── PAGE: RECORDING ── -->
+    <div class="page" id="pageRec">
+
+      <!-- TABS -->
+      <div class="tabs">
+        <button class="tab active" id="tab0" onclick="switchTab(0)">曲全体モード</button>
+        <button class="tab" id="tab1" onclick="switchTab(1)">小節練習モード</button>
+      </div>
+
+      <!-- PANEL: FULL -->
+      <div class="mode-panel active" id="panel0">
+        <div style="font-size:13px;color:var(--text2)">最初から最後まで通して弾きましょう</div>
+      </div>
+
+      <!-- PANEL: MEASURE -->
+      <div class="mode-panel" id="panel1">
+        <div class="measure-row">
+          <div class="measure-field">
+            <div class="field-label">開始小節</div>
+            <input class="measure-input" id="msStart" type="number" min="1" value="1">
+          </div>
+          <div class="measure-sep">〜</div>
+          <div class="measure-field">
+            <div class="field-label">終了小節</div>
+            <input class="measure-input" id="msEnd" type="number" min="1" value="8">
+          </div>
+        </div>
+        <div class="practice-badge">
+          <span>🎯</span><span id="practiceText">今日 0 回練習中</span>
+        </div>
+      </div>
+
+      <!-- THRESHOLD -->
+      <div class="threshold-section">
+        <div class="threshold-row">
+          <div class="threshold-label">無音しきい値</div>
+          <input type="range" id="thSlider" min="1" max="30" value="8" oninput="onThreshold(this.value)">
+          <div class="threshold-val" id="thVal">8</div>
+        </div>
+      </div>
+
+      <!-- WAVEFORM -->
+      <div class="wave-section">
+        <div class="wave-wrap" id="waveWrap">
+          <canvas id="cvs"></canvas>
+          <div class="wave-hint" id="waveHint">
+            <div class="big">🎵</div>
+            <div>録音ボタンを押してスタート</div>
+          </div>
+          <div class="rec-badge" id="recBadge"><div class="rec-dot"></div>REC</div>
+        </div>
+
+        <div class="marker-tip" id="markerTip"></div>
+
+        <div class="wave-legend" id="waveLegend" style="display:none">
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(126,232,196,.7)"></div>演奏</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(246,163,91,.7)"></div>停止</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(91,156,246,.8)"></div>クレッシェンド</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(192,132,252,.8)"></div>デクレッシェンド</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(253,230,138,.9)"></div>良い繋ぎ</div>
+        </div>
+
+        <div class="timer-disp" id="timerDisp"></div>
+
+        <!-- PLAYBACK BAR -->
+        <div class="playback-bar" id="playbackBar">
+          <button class="play-btn" id="playBtn" onclick="togglePlay()">
+            <svg id="playIcon" width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <polygon points="5,3 15,9 5,15" fill="white"/>
+            </svg>
+          </button>
+          <div class="seek-wrap">
+            <input class="seek-bar" id="seekBar" type="range" min="0" max="1000" value="0"
+              oninput="onSeek(this.value)" onchange="onSeek(this.value)">
+            <div class="seek-times">
+              <span id="playPos">0:00</span>
+              <span id="playDur">0:00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NEW REC BUTTON -->
+      <div class="new-rec-row" id="newRecRow">
+        <button class="new-rec-btn" onclick="newRecording()">＋ 新規録音を始める</button>
+      </div>
+
+      <!-- PERM ERROR -->
+      <div class="perm-error" id="permErr">
+        🎤 マイクへのアクセスが拒否されました。<br>
+        ブラウザの設定でマイクを許可してから再試行してください。<br>
+        <strong>iOS Safari:</strong> 設定 → Safari → マイク → 許可<br>
+        <strong>Android Chrome:</strong> 設定 → サイトの設定 → マイク → 許可
+      </div>
+
+      <!-- REC BUTTON -->
+      <div class="rec-section">
+        <button class="rec-btn" id="recBtn" onclick="toggleRec()">
+          <svg id="recIcon" width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <circle cx="14" cy="14" r="10" fill="white"/>
+          </svg>
+        </button>
+        <div class="rec-label" id="recLabel">タップして録音開始</div>
+      </div>
+
+      <!-- RESULTS -->
+      <div class="results" id="results">
+        <div class="results-title">📊 練習レポート</div>
+
+        <div class="star-bar">
+          <div class="sec-label">レベル評価</div>
+          <div class="stars" id="starsEl">
+            <span class="star">⭐</span><span class="star">⭐</span>
+            <span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span>
+          </div>
+          <div class="star-desc" id="starDesc"></div>
+        </div>
+
+        <div class="card card-blue">
+          <div class="sec-label">記録</div>
+          <div class="stats-grid">
+            <div class="stat-item"><div class="stat-val" id="sDur">—</div><div class="stat-lbl">録音時間</div></div>
+            <div class="stat-item"><div class="stat-val" id="sLong">—</div><div class="stat-lbl">最長連続演奏</div></div>
+            <div class="stat-item"><div class="stat-val" id="sStops">—</div><div class="stat-lbl">停止回数</div></div>
+            <div class="stat-item"><div class="stat-val" id="sRhythm">—</div><div class="stat-lbl">リズム安定</div></div>
+          </div>
+        </div>
+
+        <div class="card card-violet" id="exprCard">
+          <div class="sec-label">🎼 波形で見る表現分析</div>
+          <div id="exprList"></div>
+        </div>
+
+        <div class="card card-green">
+          <div class="sec-label">褒めポイント ✨</div>
+          <div id="praiseList"></div>
+        </div>
+
+        <div class="card card-orange" id="weakCard">
+          <div class="sec-label">もう少し練習しよう 💪</div>
+          <div id="weakList"></div>
+        </div>
+      </div>
+
+    </div><!-- /pageRec -->
+
+    <!-- ── PAGE: LIST ── -->
+    <div class="page" id="pageList">
+      <div class="list-page-header">
+        <div class="list-page-title" id="listPageTitle">録音一覧</div>
+        <div class="list-page-sub" id="listPageSub"></div>
+      </div>
+      <div class="list-sort-row">
+        <button class="sort-pill active" id="sortDate" onclick="setListSort('date')">新しい順 ↓</button>
+        <button class="sort-pill" id="sortBest" onclick="setListSort('best')">ベスト順 ★</button>
+      </div>
+      <div id="listBody"></div>
+
+      <!-- RHYTHM GRAPH -->
+      <div class="graph-section" id="graphSection" style="display:none">
+        <div class="graph-wrap">
+          <div class="graph-head">
+            <div class="graph-title">📈 リズム安定スコアの推移</div>
+            <div class="graph-badge" id="graphDiff" style="display:none"></div>
+          </div>
+          <div class="graph-canvas-wrap">
+            <canvas class="graph-cvs" id="graphCanvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PAGE: CALENDAR ── -->
+    <div class="page" id="pageCalendar">
+      <div class="cal-page">
+        <div class="streak-banner" id="streakBanner"></div>
+        <div class="cal-nav">
+          <button class="cal-nav-btn" onclick="calPrev()">‹</button>
+          <div class="cal-month-label" id="calMonthLabel"></div>
+          <button class="cal-nav-btn" onclick="calNext()">›</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+    </div>
+
+  </div><!-- /scroll-area -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-tab" id="navRec" onclick="switchPage('rec')">
+      <div class="nav-icon">🎤</div>
+      <span>録音</span>
+    </button>
+    <button class="nav-tab" id="navList" onclick="switchPage('list')">
+      <div class="nav-icon">📋</div>
+      <span>一覧</span>
+    </button>
+    <button class="nav-tab" id="navCalendar" onclick="switchPage('calendar')">
+      <div class="nav-icon">📅</div>
+      <span>カレンダー</span>
+    </button>
+  </nav>
+
+</div><!-- /main-wrap -->
+
+<!-- ── DRAWER OVERLAY (mobile) ── -->
+<div class="drawer-overlay" id="drawerOverlay">
+  <div class="drawer" id="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <div class="drawer-title">曲を選ぶ</div>
+      <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <button class="add-song-btn-main" onclick="showAddSongInput('drawer')">＋ 曲を追加</button>
+    <div class="add-song-form" id="addSongFormDrawer">
+      <input class="add-song-input" id="addSongInputDrawer" type="text" placeholder="曲名を入力..." maxlength="50">
+      <div class="add-song-btns">
+        <button onclick="confirmAddSong('drawer')">追加</button>
+        <button onclick="hideAddSongInput('drawer')">キャンセル</button>
+      </div>
+    </div>
+    <div class="song-list" id="drawerSongList"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ════════════════════════════════════════════════════════
+//  DATA MODEL
+// ════════════════════════════════════════════════════════
+
+function getSongs() {
+  try { return JSON.parse(localStorage.getItem('pl_songs') || '[]'); } catch { return []; }
+}
+function saveSongs(songs) {
+  localStorage.setItem('pl_songs', JSON.stringify(songs));
+}
+function getActiveSongId() {
+  return localStorage.getItem('pl_active_song') || null;
+}
+function setActiveSongId(id) {
+  if (id) localStorage.setItem('pl_active_song', id);
+  else localStorage.removeItem('pl_active_song');
+}
+function getActiveSong() {
+  const id = getActiveSongId();
+  if (!id) return null;
+  return getSongs().find(s => s.id === id) || null;
+}
+function addSong(name) {
+  const songs = getSongs();
+  const song = {
+    id: 'song_' + Date.now(),
+    name: name.trim(),
+    createdAt: new Date().toISOString(),
+    recordings: [],
+    practiceDate: '',
+    practiceCount: 0,
+    prevStops: null
+  };
+  songs.unshift(song);
+  saveSongs(songs);
+  return song;
+}
+function deleteSong(id) {
+  let songs = getSongs().filter(s => s.id !== id);
+  saveSongs(songs);
+  if (getActiveSongId() === id) {
+    const remaining = getSongs();
+    setActiveSongId(remaining.length ? remaining[0].id : null);
+  }
+}
+function saveRecording(songId, recData) {
+  const songs = getSongs();
+  const song = songs.find(s => s.id === songId);
+  if (!song) return null;
+  const num = (song.recordings.length > 0
+    ? Math.max(...song.recordings.map(r => r.num || 0)) + 1
+    : 1);
+  const rec = Object.assign({ id: 'rec_' + Date.now(), num }, recData);
+  song.recordings.unshift(rec);
+  saveSongs(songs);
+  return rec;
+}
+function downsampleWave(volHistory, n) {
+  n = n || 200;
+  if (!volHistory || volHistory.length === 0) return [];
+  if (volHistory.length <= n) {
+    return volHistory.map(v => Math.round(Math.min(v.rms, 100)));
+  }
+  const result = [];
+  const ratio = volHistory.length / n;
+  for (let i = 0; i < n; i++) {
+    const start = Math.floor(i * ratio);
+    const end = Math.floor((i + 1) * ratio);
+    let sum = 0;
+    for (let j = start; j < end; j++) sum += volHistory[j].rms;
+    result.push(Math.round(Math.min(sum / (end - start), 100)));
+  }
+  return result;
+}
+
+// Migration from old pl_hist
+function migrateOldData() {
+  if (getSongs().length > 0) return;
+  const old = localStorage.getItem('pl_hist');
+  if (!old) return;
+  try {
+    const hist = JSON.parse(old);
+    if (!hist || !hist.length) return;
+    const song = {
+      id: 'song_migrated_' + Date.now(),
+      name: '過去の録音',
+      createdAt: new Date().toISOString(),
+      recordings: [],
+      practiceDate: '',
+      practiceCount: 0,
+      prevStops: null
+    };
+    hist.forEach((h, i) => {
+      song.recordings.push({
+        id: 'rec_migrated_' + i,
+        num: hist.length - i,
+        date: h.date || new Date().toISOString(),
+        mode: h.mode || '曲全体',
+        dur: h.dur || 0,
+        stops: h.stops || 0,
+        stopTimes: [],
+        longest: h.longest || 0,
+        rhythm: h.rhythm || 0,
+        stars: h.stars || 0,
+        praises: [],
+        weakTexts: [],
+        exprSummary: [],
+        waveSnap: []
+      });
+    });
+    const songs = [song];
+    saveSongs(songs);
+    setActiveSongId(song.id);
+  } catch(e) { /* ignore */ }
+}
+
+// ════════════════════════════════════════════════════════
+//  AUDIO STATE
+// ════════════════════════════════════════════════════════
+
+const CVS = document.getElementById('cvs');
+const CTX = CVS.getContext('2d');
+let audioCtx = null, analyser = null, mediaRecorder = null, micStream = null;
+let isRecording = false, recStartTime = 0;
+let timerIv = null, rafId = null;
+let volHistory = [];
+let recMode = 0, practiceCount = 0, prevStopCount = null;
+let threshold = 8;
+const SILENCE_DUR = 0.8;
+
+let audioBlob = null, audioEl = null, playRafId = null, recordedChunks = [];
+let exprMarkers = [];
+
+// ════════════════════════════════════════════════════════
+//  CANVAS
+// ════════════════════════════════════════════════════════
+
+function resizeCvs() {
+  const wrap = document.getElementById('waveWrap');
+  const dpr = window.devicePixelRatio || 1;
+  CVS.width  = Math.round(wrap.clientWidth  * dpr);
+  CVS.height = Math.round(wrap.clientHeight * dpr);
+  CTX.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (!isRecording && volHistory.length > 0) drawFullPro();
+}
+window.addEventListener('resize', resizeCvs);
+document.addEventListener('DOMContentLoaded', resizeCvs);
+setTimeout(resizeCvs, 100);
+
+// ════════════════════════════════════════════════════════
+//  PAGE / UI SWITCHING
+// ════════════════════════════════════════════════════════
+
+let currentPage = 'noSong';
+let listSort = 'date';
+
+function switchPage(page) {
+  const activeSong = getActiveSong();
+  if ((page === 'rec' || page === 'list') && !activeSong) {
+    page = 'noSong';
+  }
+  currentPage = page;
+  document.getElementById('pageNoSong').classList.toggle('active', page === 'noSong');
+  document.getElementById('pageRec').classList.toggle('active', page === 'rec');
+  document.getElementById('pageList').classList.toggle('active', page === 'list');
+  document.getElementById('pageCalendar').classList.toggle('active', page === 'calendar');
+  document.getElementById('navRec').classList.toggle('active', page === 'rec');
+  document.getElementById('navList').classList.toggle('active', page === 'list');
+  document.getElementById('navCalendar').classList.toggle('active', page === 'calendar');
+  document.getElementById('scrollArea').scrollTop = 0;
+  if (page === 'list') renderListPage();
+  if (page === 'rec') resizeCvs();
+  if (page === 'calendar') renderCalendar();
+}
+
+// ════════════════════════════════════════════════════════
+//  DRAWER
+// ════════════════════════════════════════════════════════
+
+function openDrawer() {
+  document.getElementById('drawerOverlay').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('drawerOverlay').classList.remove('open');
+  hideAddSongInput('drawer');
+}
+function toggleDrawer() {
+  const overlay = document.getElementById('drawerOverlay');
+  if (overlay.classList.contains('open')) closeDrawer();
+  else openDrawer();
+}
+document.getElementById('drawerOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeDrawer();
+});
+
+// ════════════════════════════════════════════════════════
+//  SONG LIST RENDERING
+// ════════════════════════════════════════════════════════
+
+function renderSongLists() {
+  const songs = getSongs();
+  const activeId = getActiveSongId();
+  const makeItems = (containerId) => {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    if (!songs.length) {
+      el.innerHTML = '<div style="text-align:center;color:var(--text2);font-size:13px;padding:20px 0">まだ曲がありません</div>';
+      return;
+    }
+    el.innerHTML = songs.map(s => {
+      const cnt = s.recordings ? s.recordings.length : 0;
+      const isActive = s.id === activeId;
+      return `<div class="song-item${isActive ? ' active-song' : ''}" onclick="selectSong('${s.id}')">
+        <div class="song-item-info">
+          <div class="song-item-name">${esc(s.name)}</div>
+          <div class="song-item-sub">${cnt}件の録音</div>
+        </div>
+        <button class="song-item-del" onclick="handleDeleteSong(event,'${s.id}')" aria-label="削除">🗑</button>
+      </div>`;
+    }).join('');
+  };
+  makeItems('sidebarSongList');
+  makeItems('drawerSongList');
+}
+
+function selectSong(id) {
+  setActiveSongId(id);
+  const song = getActiveSong();
+  if (song) {
+    document.getElementById('headerSongName').textContent = song.name;
+    loadSongPracticeState(song);
+  }
+  renderSongLists();
+  closeDrawer();
+  if (currentPage === 'noSong') switchPage('rec');
+  else if (currentPage === 'list') renderListPage();
+  else resizeCvs();
+}
+
+function handleDeleteSong(e, id) {
+  e.stopPropagation();
+  const songs = getSongs();
+  const song = songs.find(s => s.id === id);
+  if (!song) return;
+  const cnt = song.recordings ? song.recordings.length : 0;
+  const msg = cnt > 0
+    ? `「${song.name}」を削除しますか？\n${cnt}件の録音も削除されます。`
+    : `「${song.name}」を削除しますか？`;
+  if (!confirm(msg)) return;
+  deleteSong(id);
+  const remaining = getSongs();
+  if (remaining.length > 0) {
+    setActiveSongId(remaining[0].id);
+    const s = remaining[0];
+    document.getElementById('headerSongName').textContent = s.name;
+    loadSongPracticeState(s);
+  } else {
+    setActiveSongId(null);
+    document.getElementById('headerSongName').textContent = '曲を選んでください';
+  }
+  renderSongLists();
+  const activeNow = getActiveSong();
+  if (!activeNow) switchPage('noSong');
+  else if (currentPage === 'list') renderListPage();
+}
+
+// ════════════════════════════════════════════════════════
+//  ADD SONG
+// ════════════════════════════════════════════════════════
+
+function showAddSongInput(ctx) {
+  const formId = ctx === 'sidebar' ? 'addSongFormSidebar' : 'addSongFormDrawer';
+  const inputId = ctx === 'sidebar' ? 'addSongInputSidebar' : 'addSongInputDrawer';
+  document.getElementById(formId).style.display = 'block';
+  const btn = document.getElementById(formId).previousElementSibling;
+  if (btn && btn.classList.contains('add-song-btn-main')) btn.style.display = 'none';
+  setTimeout(() => document.getElementById(inputId).focus(), 50);
+}
+
+function hideAddSongInput(ctx) {
+  const formId = ctx === 'sidebar' ? 'addSongFormSidebar' : 'addSongFormDrawer';
+  const inputId = ctx === 'sidebar' ? 'addSongInputSidebar' : 'addSongInputDrawer';
+  document.getElementById(formId).style.display = 'none';
+  document.getElementById(inputId).value = '';
+  const btn = document.getElementById(formId).previousElementSibling;
+  if (btn && btn.classList.contains('add-song-btn-main')) btn.style.display = '';
+}
+
+function confirmAddSong(ctx) {
+  const inputId = ctx === 'sidebar' ? 'addSongInputSidebar' : 'addSongInputDrawer';
+  const name = document.getElementById(inputId).value.trim();
+  if (!name) {
+    document.getElementById(inputId).focus();
+    return;
+  }
+  const song = addSong(name);
+  hideAddSongInput(ctx);
+  selectSong(song.id);
+}
+
+// Enter key support for add song inputs
+document.getElementById('addSongInputSidebar').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') confirmAddSong('sidebar');
+});
+document.getElementById('addSongInputDrawer').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') confirmAddSong('drawer');
+});
+
+// ════════════════════════════════════════════════════════
+//  LIST PAGE
+// ════════════════════════════════════════════════════════
+
+function setListSort(sort) {
+  listSort = sort;
+  document.getElementById('sortDate').classList.toggle('active', sort === 'date');
+  document.getElementById('sortBest').classList.toggle('active', sort === 'best');
+  renderListPage();
+}
+
+function renderListPage() {
+  const song = getActiveSong();
+  if (!song) { switchPage('noSong'); return; }
+
+  document.getElementById('listPageTitle').textContent = `【${song.name}】の録音`;
+  const recs = song.recordings || [];
+  document.getElementById('listPageSub').textContent = `${recs.length}件`;
+
+  const body = document.getElementById('listBody');
+  if (!recs.length) {
+    body.innerHTML = `<div class="list-empty"><div class="list-empty-icon">🎵</div><div>まだ録音がありません<br>録音タブから練習を始めよう！</div></div>`;
+    return;
+  }
+
+  let sorted = [...recs];
+  if (listSort === 'date') {
+    sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
+  } else {
+    sorted.sort((a, b) => (b.rhythm * b.stars) - (a.rhythm * a.stars));
+  }
+
+  // Render graph after body
+  setTimeout(() => renderRhythmGraph(), 50);
+
+  body.innerHTML = sorted.map((rec, idx) => {
+    const isBest = listSort === 'best' && idx === 0;
+    const d = new Date(rec.date);
+    const dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const starsStr = '⭐'.repeat(rec.stars||0) + '☆'.repeat(5-(rec.stars||0));
+    return `<div class="rec-card" id="reccard_${rec.id}">
+      <div class="rec-card-head">
+        <div class="rec-card-row1">
+          <div class="rec-card-num">録音 #${rec.num}</div>
+          <div class="rec-card-badges">
+            ${isBest ? '<span class="crown-badge">👑 ベスト</span>' : ''}
+          </div>
+        </div>
+        <div class="rec-card-date">${dateStr}　${esc(rec.mode||'曲全体')}</div>
+        <div class="rec-card-stats" style="margin-top:8px">
+          <span class="rec-card-stars">${starsStr}</span>
+          <span><span class="rec-card-stat-val">${rec.dur}</span>秒</span>
+          <span>停止<span class="rec-card-stat-val">${rec.stops}</span>回</span>
+          <span>最長<span class="rec-card-stat-val">${rec.longest}</span>秒</span>
+          <span>リズム<span class="rec-card-stat-val">${rec.rhythm}</span>点</span>
+        </div>
+      </div>
+      <button class="rec-card-expand" id="expand_${rec.id}" onclick="toggleRecordingCard('${rec.id}')">▼ 詳細</button>
+      <div class="rec-card-detail" id="detail_${rec.id}"></div>
+    </div>`;
+  }).join('');
+}
+
+function toggleRecordingCard(recId) {
+  const detailEl = document.getElementById('detail_' + recId);
+  const btnEl = document.getElementById('expand_' + recId);
+  const isOpen = detailEl.classList.contains('open');
+  if (isOpen) {
+    detailEl.classList.remove('open');
+    btnEl.textContent = '▼ 詳細';
+    return;
+  }
+  // Build detail content if empty
+  if (!detailEl.innerHTML.trim()) {
+    const song = getActiveSong();
+    if (!song) return;
+    const rec = (song.recordings || []).find(r => r.id === recId);
+    if (!rec) return;
+    buildRecordingDetail(detailEl, rec);
+  }
+  detailEl.classList.add('open');
+  btnEl.textContent = '▲ 閉じる';
+}
+
+function buildRecordingDetail(el, rec) {
+  // Mini waveform canvas
+  const miniId = 'miniwave_' + rec.id;
+  let html = `<div class="mini-wave-wrap"><canvas id="${miniId}" style="width:100%;height:100%;display:block"></canvas></div>`;
+
+  // Expression summary
+  if (rec.exprSummary && rec.exprSummary.length) {
+    html += `<div class="detail-section">
+      <div class="detail-section-label">表現分析</div>
+      <div>${rec.exprSummary.map(t => `<span class="detail-tag detail-tag-expr">${esc(t)}</span>`).join('')}</div>
+    </div>`;
+  }
+  // Praises
+  if (rec.praises && rec.praises.length) {
+    html += `<div class="detail-section">
+      <div class="detail-section-label">褒めポイント</div>
+      <div>${rec.praises.map(t => `<span class="detail-tag detail-tag-praise">${esc(t)}</span>`).join('')}</div>
+    </div>`;
+  }
+  // Weak spots
+  if (rec.weakTexts && rec.weakTexts.length) {
+    html += `<div class="detail-section">
+      <div class="detail-section-label">練習ポイント</div>
+      <div>${rec.weakTexts.map(t => `<span class="detail-tag detail-tag-weak">${esc(t)}</span>`).join('')}</div>
+    </div>`;
+  }
+
+  el.innerHTML = html;
+
+  // Draw mini waveform after DOM insert
+  requestAnimationFrame(() => {
+    const cnv = document.getElementById(miniId);
+    if (cnv) renderMiniWave(cnv, rec.waveSnap || [], rec.stopTimes || [], rec.dur || 0);
+  });
+}
+
+function renderMiniWave(canvas, waveSnap, stopTimes, totalDur) {
+  const wrap = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  const W = wrap.clientWidth;
+  const H = wrap.clientHeight;
+  canvas.width  = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  if (!waveSnap || waveSnap.length === 0) {
+    ctx.fillStyle = 'rgba(136,146,164,0.3)';
+    ctx.font = '11px DM Sans, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('波形データなし', W/2, H/2 + 4);
+    return;
+  }
+
+  const n = waveSnap.length;
+  const maxVal = Math.max(...waveSnap, 1);
+  const scale = Math.min(90 / maxVal, 12);
+  const step = W / n;
+  const cy = H / 2;
+
+  // Center line
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  ctx.moveTo(0, cy); ctx.lineTo(W, cy);
+  ctx.stroke();
+
+  // Bars
+  waveSnap.forEach((val, i) => {
+    const x = i * step;
+    const tFrac = totalDur > 0 ? (i / n) * totalDur : 0;
+    const halfH = Math.min((val * scale / 100) * H * 0.88, cy - 2);
+    const isSil = stopTimes.some(s => tFrac >= s.start && tFrac <= s.end);
+    ctx.fillStyle = isSil ? 'rgba(246,163,91,0.65)' : 'rgba(126,232,196,0.55)';
+    ctx.fillRect(x, cy - halfH, Math.max(1, step * 0.8), Math.max(2, halfH * 2));
+  });
+}
+
+// ════════════════════════════════════════════════════════
+//  RECORDING UI HELPERS
+// ════════════════════════════════════════════════════════
+
+function switchTab(i) {
+  recMode = i;
+  document.querySelectorAll('.tab').forEach((t, j) => t.classList.toggle('active', j === i));
+  document.querySelectorAll('.mode-panel').forEach((p, j) => p.classList.toggle('active', j === i));
+}
+function onThreshold(v) { threshold = +v; document.getElementById('thVal').textContent = v; }
+
+// ════════════════════════════════════════════════════════
+//  RECORDING
+// ════════════════════════════════════════════════════════
+
+async function toggleRec() { isRecording ? stopRec() : await startRec(); }
+
+async function startRec() {
+  document.getElementById('permErr').classList.remove('show');
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
+    });
+  } catch {
+    document.getElementById('permErr').classList.add('show');
+    return;
+  }
+
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  analyser.smoothingTimeConstant = 0.15;
+  audioCtx.createMediaStreamSource(micStream).connect(analyser);
+
+  const mime = bestMime();
+  mediaRecorder = new MediaRecorder(micStream, mime ? { mimeType: mime } : {});
+  recordedChunks = [];
+  mediaRecorder.ondataavailable = e => { if (e.data?.size > 0) recordedChunks.push(e.data); };
+  mediaRecorder.start(100);
+
+  isRecording = true;
+  recStartTime = audioCtx.currentTime;
+  volHistory = [];
+  exprMarkers = [];
+
+  document.getElementById('waveHint').style.display = 'none';
+  document.getElementById('waveLegend').style.display = 'none';
+  document.getElementById('recBtn').classList.add('recording');
+  document.getElementById('recBadge').classList.add('show');
+  document.getElementById('recLabel').textContent = 'タップして停止';
+  document.getElementById('recIcon').innerHTML = '<rect x="9" y="9" width="10" height="10" rx="2" fill="white"/>';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('playbackBar').classList.remove('show');
+  document.getElementById('markerTip').classList.remove('show');
+  document.getElementById('newRecRow').classList.remove('show');
+
+  if (audioEl) { audioEl.pause(); audioEl.src = ''; audioEl = null; }
+  if (audioBlob) { URL.revokeObjectURL(audioBlob); audioBlob = null; }
+
+  let sec = 0;
+  timerIv = setInterval(() => {
+    sec++;
+    const m = String(Math.floor(sec / 60)).padStart(2, '0');
+    const s = String(sec % 60).padStart(2, '0');
+    document.getElementById('timerDisp').textContent = m + ':' + s;
+  }, 1000);
+
+  drawLoop();
+}
+
+function stopRec() {
+  if (!isRecording) return;
+  isRecording = false;
+  cancelAnimationFrame(rafId);
+  clearInterval(timerIv);
+
+  const duration = audioCtx.currentTime - recStartTime;
+
+  mediaRecorder.onstop = () => {
+    const mime = mediaRecorder.mimeType || 'audio/webm';
+    setupPlayback(new Blob(recordedChunks, { type: mime }), duration);
+  };
+  mediaRecorder.stop();
+  micStream.getTracks().forEach(t => t.stop());
+  audioCtx.close().catch(() => {});
+  audioCtx = null;
+
+  document.getElementById('recBtn').classList.remove('recording');
+  document.getElementById('recBadge').classList.remove('show');
+  document.getElementById('recLabel').textContent = 'タップして録音開始';
+  document.getElementById('recIcon').innerHTML = '<circle cx="14" cy="14" r="10" fill="white"/>';
+
+  analyze(duration);
+}
+
+function bestMime() {
+  const t = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
+  return t.find(x => MediaRecorder.isTypeSupported(x)) || '';
+}
+
+// ════════════════════════════════════════════════════════
+//  REAL-TIME DRAW
+// ════════════════════════════════════════════════════════
+
+function drawLoop() {
+  if (!isRecording) return;
+  const buf = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteTimeDomainData(buf);
+
+  let sumSq = 0;
+  for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; sumSq += v * v; }
+  const rms = Math.sqrt(sumSq / buf.length) * 100;
+  const t = audioCtx ? audioCtx.currentTime - recStartTime : 0;
+  volHistory.push({ t, rms });
+
+  const wrap = document.getElementById('waveWrap');
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  CTX.clearRect(0, 0, W, H);
+
+  const maxRms = Math.max(...volHistory.map(v => v.rms), 1);
+  const scale = Math.min(90 / maxRms, 12);
+  const view = volHistory.slice(-400);
+  const step = W / Math.max(view.length, 1);
+  const cy = H / 2;
+
+  CTX.beginPath();
+  CTX.strokeStyle = 'rgba(255,255,255,0.06)';
+  CTX.lineWidth = 1;
+  CTX.moveTo(0, cy); CTX.lineTo(W, cy);
+  CTX.stroke();
+
+  view.forEach((v, i) => {
+    const x = i * step;
+    const halfH = Math.min((v.rms * scale / 100) * H * 0.9, cy - 2);
+    const isSil = v.rms < threshold;
+    CTX.fillStyle = isSil ? 'rgba(246,163,91,0.55)' : 'rgba(126,232,196,0.55)';
+    CTX.fillRect(x, cy - halfH, Math.max(1, step * 0.85), halfH * 2);
+  });
+
+  const thHalf = Math.min((threshold * scale / 100) * H * 0.9, cy - 2);
+  CTX.beginPath();
+  CTX.setLineDash([4, 4]);
+  CTX.strokeStyle = 'rgba(246,163,91,0.5)';
+  CTX.lineWidth = 1;
+  CTX.moveTo(0, cy - thHalf); CTX.lineTo(W, cy - thHalf);
+  CTX.moveTo(0, cy + thHalf); CTX.lineTo(W, cy + thHalf);
+  CTX.stroke();
+  CTX.setLineDash([]);
+
+  rafId = requestAnimationFrame(drawLoop);
+}
+
+// ════════════════════════════════════════════════════════
+//  FULL WAVEFORM WITH EXPRESSION MARKERS
+// ════════════════════════════════════════════════════════
+
+function drawFullPro(cursorTime) {
+  const wrap = document.getElementById('waveWrap');
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  CTX.clearRect(0, 0, W, H);
+  if (volHistory.length === 0) return;
+
+  const total = volHistory[volHistory.length - 1].t;
+  const maxRms = Math.max(...volHistory.map(v => v.rms), 1);
+  const scale = Math.min(90 / maxRms, 12);
+  const cy = H / 2;
+
+  const stops = detectStops();
+
+  exprMarkers.forEach(m => {
+    if (!m.end || m.type === 'good_transition') return;
+    const x1 = (m.start / total) * W;
+    const x2 = (m.end / total) * W;
+    let bg;
+    if (m.type === 'crescendo')   bg = 'rgba(91,156,246,0.12)';
+    if (m.type === 'decrescendo') bg = 'rgba(192,132,252,0.12)';
+    if (m.type === 'peak_expr')   bg = 'rgba(126,232,196,0.08)';
+    if (bg) { CTX.fillStyle = bg; CTX.fillRect(x1, 0, x2 - x1, H); }
+  });
+
+  CTX.beginPath();
+  CTX.strokeStyle = 'rgba(255,255,255,0.07)';
+  CTX.lineWidth = 1;
+  CTX.moveTo(0, cy); CTX.lineTo(W, cy);
+  CTX.stroke();
+
+  const step = W / volHistory.length;
+  volHistory.forEach((v, i) => {
+    const x = i * step;
+    const halfH = Math.min((v.rms * scale / 100) * H * 0.88, cy - 2);
+    const isSil  = stops.some(s => v.t >= s.start && v.t <= s.end);
+    const isCrsc = exprMarkers.some(m => m.type === 'crescendo'   && v.t >= m.start && v.t <= m.end);
+    const isDcrc = exprMarkers.some(m => m.type === 'decrescendo' && v.t >= m.start && v.t <= m.end);
+    let color;
+    if (isSil)        color = 'rgba(246,163,91,0.65)';
+    else if (isCrsc)  color = 'rgba(91,156,246,0.7)';
+    else if (isDcrc)  color = 'rgba(192,132,252,0.7)';
+    else              color = 'rgba(126,232,196,0.55)';
+    CTX.fillStyle = color;
+    CTX.fillRect(x, cy - halfH, Math.max(1, step * 0.8), Math.max(2, halfH * 2));
+  });
+
+  const thHalf = Math.min((threshold * scale / 100) * H * 0.88, cy - 2);
+  CTX.beginPath();
+  CTX.setLineDash([5, 5]);
+  CTX.strokeStyle = 'rgba(246,163,91,0.5)';
+  CTX.lineWidth = 1;
+  CTX.moveTo(0, cy - thHalf); CTX.lineTo(W, cy - thHalf);
+  CTX.moveTo(0, cy + thHalf); CTX.lineTo(W, cy + thHalf);
+  CTX.stroke();
+  CTX.setLineDash([]);
+
+  exprMarkers.forEach(m => {
+    const x = (m.start / total) * W;
+    drawMarkerFlag(x, m.color, H);
+  });
+
+  if (cursorTime !== undefined) {
+    const cx = (cursorTime / total) * W;
+    CTX.beginPath();
+    CTX.strokeStyle = 'rgba(255,255,255,0.9)';
+    CTX.lineWidth = 2;
+    CTX.moveTo(cx, 0); CTX.lineTo(cx, H);
+    CTX.stroke();
+    updateMarkerTip(cursorTime);
+  }
+}
+
+function drawMarkerFlag(x, color, H) {
+  const r = 5;
+  CTX.beginPath();
+  CTX.strokeStyle = color;
+  CTX.lineWidth = 1.5;
+  CTX.moveTo(x, r * 2 + 2); CTX.lineTo(x, H * 0.35);
+  CTX.stroke();
+  CTX.beginPath();
+  CTX.moveTo(x, 2);
+  CTX.lineTo(x + r * 1.8, r * 1.2);
+  CTX.lineTo(x, r * 2 + 2);
+  CTX.closePath();
+  CTX.fillStyle = color;
+  CTX.fill();
+}
+
+// ════════════════════════════════════════════════════════
+//  ANALYSIS FUNCTIONS
+// ════════════════════════════════════════════════════════
+
+function detectStops() {
+  const stops = [];
+  let silStart = null;
+  volHistory.forEach(({ t, rms }) => {
+    if (rms < threshold) {
+      if (silStart === null) silStart = t;
+    } else {
+      if (silStart !== null) {
+        const dur = t - silStart;
+        if (dur >= SILENCE_DUR) stops.push({ start: silStart, end: t, dur });
+        silStart = null;
+      }
+    }
+  });
+  if (silStart !== null) {
+    const last = volHistory[volHistory.length - 1].t;
+    const dur = last - silStart;
+    if (dur >= SILENCE_DUR) stops.push({ start: silStart, end: last, dur });
+  }
+  return stops;
+}
+
+function playingSegs(stops, total) {
+  const segs = [];
+  let prev = 0;
+  for (const s of stops) {
+    if (s.start > prev + 0.1) segs.push({ start: prev, end: s.start, dur: s.start - prev });
+    prev = s.end;
+  }
+  if (prev < total - 0.1) segs.push({ start: prev, end: total, dur: total - prev });
+  return segs;
+}
+
+function rhythmScore() {
+  const playing = volHistory.filter(v => v.rms >= threshold);
+  if (playing.length < 5) return 40;
+  const vals = playing.map(v => v.rms);
+  const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+  if (!mean) return 0;
+  const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length);
+  return Math.max(0, Math.min(100, Math.round((1 - sd / mean) * 100)));
+}
+
+function detectExpressionMarkers(stops, total) {
+  const markers = [];
+  if (volHistory.length < 10 || total < 2) return markers;
+
+  const smoothed = smoothRms(0.3);
+
+  const WIN = 2.0, STEP = 0.5;
+  for (let t = 0; t + WIN <= total; t += STEP) {
+    const seg = smoothed.filter(v => v.t >= t && v.t < t + WIN);
+    if (seg.length < 4) continue;
+    const playingSeg = seg.filter(v => v.rms >= threshold);
+    if (playingSeg.length < seg.length * 0.6) continue;
+    const slope = linearSlope(playingSeg.map((v, i) => i), playingSeg.map(v => v.rms));
+    const meanRms = playingSeg.reduce((a, b) => a + b.rms, 0) / playingSeg.length;
+    const changePct = (slope * playingSeg.length) / Math.max(meanRms, 1);
+    if (changePct > 0.35) {
+      mergeOrPush(markers, 'crescendo', t, t + WIN, '#5b9cf6', 'クレッシェンド', '音量が上がっている！表現がきれい');
+    } else if (changePct < -0.35) {
+      mergeOrPush(markers, 'decrescendo', t, t + WIN, '#c084fc', 'デクレッシェンド', '音量を落としている！コントロールが素晴らしい');
+    }
+  }
+
+  stops.forEach(stop => {
+    if (stop.dur > 5) return;
+    const afterSeg = smoothed.filter(v => v.t >= stop.end && v.t < stop.end + 1.0);
+    if (afterSeg.length < 3) return;
+    const playing = afterSeg.filter(v => v.rms >= threshold);
+    if (playing.length < afterSeg.length * 0.6) return;
+    const firstPlaying = afterSeg.find(v => v.rms >= threshold);
+    if (firstPlaying && (firstPlaying.t - stop.end) < 0.4) {
+      markers.push({
+        type: 'good_transition', start: stop.end, end: stop.end,
+        color: '#fde68a', label: '繋ぎがスムーズ',
+        sub: `${fmtTime(stop.end)}に止まった後、素早くきれいに入り直した`
+      });
+    }
+  });
+
+  let bestExprScore = -1, bestExprStart = -1, bestExprEnd = -1;
+  for (let t = 0; t + 3 <= total; t += 0.5) {
+    const seg = smoothed.filter(v => v.t >= t && v.t < t + 3 && v.rms >= threshold);
+    if (seg.length < 6) continue;
+    const vals = seg.map(v => v.rms);
+    const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length);
+    const cv = sd / mean;
+    if (cv > 0.15 && cv < 0.55) {
+      const score = cv * mean;
+      if (score > bestExprScore) { bestExprScore = score; bestExprStart = t; bestExprEnd = t + 3; }
+    }
+  }
+  if (bestExprStart >= 0) {
+    markers.push({
+      type: 'peak_expr', start: bestExprStart, end: bestExprEnd,
+      color: '#7ee8c4', label: 'ここが一番表情豊か！',
+      sub: `${fmtTime(bestExprStart)}〜${fmtTime(bestExprEnd)}：強弱のバランスが絶妙`
+    });
+  }
+
+  for (let t = 0; t + 3 <= total; t += 1) {
+    const seg = smoothed.filter(v => v.t >= t && v.t < t + 3 && v.rms >= threshold);
+    if (seg.length < 8) continue;
+    const vals = seg.map(v => v.rms);
+    const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length);
+    if (sd / mean < 0.05 && mean > threshold * 2) {
+      markers.push({
+        type: 'flat', start: t, end: t + 3,
+        color: '#f65b5b', label: '強弱をつけるともっと良くなる',
+        sub: `${fmtTime(t)}〜${fmtTime(t + 3)}：音量が一定。表情をつけてみよう`
+      });
+      t += 3;
+    }
+  }
+
+  return markers;
+}
+
+function smoothRms(windowSec) {
+  return volHistory.map((v, i) => {
+    const from = v.t - windowSec / 2;
+    const to   = v.t + windowSec / 2;
+    const win = volHistory.slice(Math.max(0, i - 10), i + 10).filter(x => x.t >= from && x.t <= to);
+    const mean = win.reduce((a, b) => a + b.rms, 0) / Math.max(win.length, 1);
+    return { t: v.t, rms: mean };
+  });
+}
+
+function linearSlope(xs, ys) {
+  const n = xs.length;
+  if (n < 2) return 0;
+  const mx = xs.reduce((a, b) => a + b, 0) / n;
+  const my = ys.reduce((a, b) => a + b, 0) / n;
+  const num = xs.reduce((a, x, i) => a + (x - mx) * (ys[i] - my), 0);
+  const den = xs.reduce((a, x) => a + (x - mx) ** 2, 0);
+  return den ? num / den : 0;
+}
+
+function mergeOrPush(arr, type, start, end, color, label, sub) {
+  const last = arr.filter(m => m.type === type).at(-1);
+  if (last && start <= last.end + 0.6) {
+    last.end = end;
+  } else {
+    arr.push({ type, start, end, color, label, sub });
+  }
+}
+
+let lastTipIdx = -1;
+function updateMarkerTip(cursorTime) {
+  const active = exprMarkers.find(m => {
+    const mEnd = m.end || m.start + 0.5;
+    return cursorTime >= m.start - 0.3 && cursorTime <= mEnd + 0.3;
+  });
+  const tip = document.getElementById('markerTip');
+  if (active) {
+    const idx = exprMarkers.indexOf(active);
+    if (idx !== lastTipIdx) {
+      lastTipIdx = idx;
+      tip.style.borderColor = active.color;
+      tip.style.background = hexToRgba(active.color, 0.07);
+      tip.textContent = `${active.label}　${active.sub || ''}`;
+      tip.classList.add('show');
+    }
+  } else {
+    lastTipIdx = -1;
+    tip.classList.remove('show');
+  }
+}
+function hexToRgba(hex, a) {
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// ════════════════════════════════════════════════════════
+//  MAIN ANALYZE
+// ════════════════════════════════════════════════════════
+
+function analyze(duration) {
+  if (volHistory.length === 0) return;
+  const total   = Math.max(duration, volHistory[volHistory.length - 1].t);
+  const stops   = detectStops();
+  const segs    = playingSegs(stops, total);
+  const longest = segs.reduce((b, s) => s.dur > b.dur ? s : b, { start: 0, end: 0, dur: 0 });
+  const rs       = rhythmScore();
+  const stopCount = stops.length;
+
+  exprMarkers = detectExpressionMarkers(stops, total);
+  drawFullPro();
+  document.getElementById('waveLegend').style.display = 'flex';
+
+  // Stars
+  let stars = 0, desc = '';
+  if (total >= 5) {
+    const p70 = total * 0.3;
+    const lastSeg = segs[segs.length - 1];
+    const endedNear = lastSeg && (total - lastSeg.end) < 3;
+    if (stopCount === 0)                              { stars = 5; desc = '完璧！最初から最後まで止まらずに弾けた！'; }
+    else if (stops.filter(s => s.start >= p70).length === 0) { stars = 4; desc = '後半はノンストップ！もう少しで完璧！'; }
+    else if (longest.dur >= 10)                       { stars = 3; desc = '10秒以上連続で弾けた区間があったよ！'; }
+    else if (endedNear)                               { stars = 2; desc = '最後まで弾き切った！流れを磨いていこう！'; }
+    else                                              { stars = 1; desc = '練習スタート！少しずつ伸ばしていこう！'; }
+  }
+  document.querySelectorAll('.star').forEach((el, i) => el.classList.toggle('on', i < stars));
+  document.getElementById('starDesc').textContent = desc;
+
+  sv('sDur',    Math.round(total),        '秒');
+  sv('sLong',   Math.round(longest.dur),  '秒');
+  sv('sStops',  stopCount,                '回');
+  sv('sRhythm', rs,                       '点');
+
+  renderExprCard(exprMarkers, total);
+
+  // Praise texts (also stored as strings)
+  const praisesData = [];
+  if (total >= 5) praisesData.push({ icon: '🎉', text: '最後まで弾き切った！すごい！' });
+  if (longest.dur > 0) {
+    praisesData.push({ icon: '⏱️', text: `最長連続演奏：${Math.round(longest.dur)}秒！` });
+    praisesData.push({ icon: '🌟', text: `ベスト区間：${fmtTime(longest.start)}〜${fmtTime(longest.end)}` });
+  }
+  praisesData.push({ icon: '🎵', text: `リズム安定スコア：${rs}点` });
+
+  const song = getActiveSong();
+  if (recMode === 1 && song) {
+    const songs = getSongs();
+    const s = songs.find(x => x.id === song.id);
+    if (s) {
+      const todayStr = new Date().toDateString();
+      if (s.practiceDate !== todayStr) {
+        s.practiceDate = todayStr;
+        s.practiceCount = 0;
+        s.prevStops = null;
+      }
+      s.practiceCount = (s.practiceCount || 0) + 1;
+      practiceCount = s.practiceCount;
+      praisesData.push({ icon: '🔁', text: `今日${s.practiceCount}回練習したね！すごい！` });
+      if (s.prevStops !== null && stopCount < s.prevStops)
+        praisesData.push({ icon: '📈', text: '前より止まらずに弾けてる！上手くなってる！' });
+      s.prevStops = stopCount;
+      saveSongs(songs);
+      document.getElementById('practiceText').textContent = `今日 ${s.practiceCount} 回練習中`;
+    }
+  }
+
+  document.getElementById('praiseList').innerHTML = praisesData.map(p =>
+    `<div class="praise-item"><span class="p-icon">${p.icon}</span><span class="p-text">${p.text}</span></div>`
+  ).join('');
+
+  // Weak
+  const weakTextsData = [];
+  const weakCard = document.getElementById('weakCard');
+  if (stopCount > 0) {
+    const sorted = [...stops].sort((a, b) => a.start - b.start);
+    weakTextsData.push(`${fmtTime(sorted[0].start)}あたりをもう少し練習するとさらによくなるよ！`);
+    if (sorted.length > 1) {
+      const mid = sorted[Math.floor(sorted.length / 2)];
+      weakTextsData.push(`${fmtTime(mid.start)}あたりも意識してみよう！`);
+    }
+    document.getElementById('weakList').innerHTML = weakTextsData.map(t =>
+      `<div class="praise-item"><span class="p-icon">💡</span><span class="p-text">${t}</span></div>`
+    ).join('');
+    weakCard.style.display = 'block';
+  } else {
+    weakCard.style.display = 'none';
+  }
+
+  // Save recording to active song
+  const activeSong = getActiveSong();
+  if (activeSong) {
+    const waveSnap = downsampleWave(volHistory, 200);
+    const exprSummary = exprMarkers.map(m => {
+      const tStr = m.end && m.end !== m.start
+        ? `${fmtTime(m.start)}〜${fmtTime(m.end)}`
+        : fmtTime(m.start);
+      return `${m.label} ${tStr}`;
+    });
+
+    const modeStr = recMode === 0
+      ? '曲全体'
+      : `小節${document.getElementById('msStart').value}〜${document.getElementById('msEnd').value}`;
+
+    saveRecording(activeSong.id, {
+      date: new Date().toISOString(),
+      mode: modeStr,
+      dur: Math.round(total),
+      stops: stopCount,
+      stopTimes: stops.map(s => ({ start: s.start, end: s.end })),
+      longest: Math.round(longest.dur),
+      rhythm: rs,
+      stars,
+      praises: praisesData.map(p => p.text),
+      weakTexts: weakTextsData,
+      exprSummary,
+      waveSnap
+    });
+    renderSongLists();
+    // カレンダーページが開いていれば即更新
+    if (currentPage === 'calendar') renderCalendar();
+  }
+
+  document.getElementById('newRecRow').classList.add('show');
+  const el = document.getElementById('results');
+  el.style.display = 'flex';
+  el.style.flexDirection = 'column';
+  setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+}
+
+function renderExprCard(markers, total) {
+  const card = document.getElementById('exprCard');
+  const list = document.getElementById('exprList');
+  const order = ['peak_expr', 'crescendo', 'decrescendo', 'good_transition', 'flat'];
+  const sorted = [...markers].sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
+
+  if (sorted.length === 0) {
+    list.innerHTML = '<div style="font-size:14px;color:var(--text2)">もっと弾くとここに詳しい分析が出るよ！</div>';
+    card.style.display = 'block'; return;
+  }
+  list.innerHTML = sorted.map(m => {
+    const timeStr = m.end && m.end !== m.start
+      ? `${fmtTime(m.start)} 〜 ${fmtTime(m.end)}`
+      : fmtTime(m.start);
+    return `<div class="expr-item">
+      <div class="expr-dot" style="background:${m.color}"></div>
+      <div class="expr-body">
+        <div class="expr-label">${m.label}</div>
+        <div class="expr-sub">${m.sub || ''}</div>
+        <div class="expr-time">🕐 ${timeStr}</div>
+      </div>
+      <button class="jump-btn" onclick="seekToTime(${m.start})">▶ ここを聴く</button>
+    </div>`;
+  }).join('');
+  card.style.display = 'block';
+}
+
+function sv(id, val, unit) {
+  document.getElementById(id).innerHTML = `${val}<span class="stat-unit">${unit}</span>`;
+}
+
+// ════════════════════════════════════════════════════════
+//  PLAYBACK
+// ════════════════════════════════════════════════════════
+
+function setupPlayback(blob, duration) {
+  audioBlob = URL.createObjectURL(blob);
+  audioEl = new Audio(audioBlob);
+  audioEl.preload = 'metadata';
+
+  const showBar = (dur) => {
+    document.getElementById('playDur').textContent = fmtTime(dur);
+    document.getElementById('seekBar').max = Math.ceil(dur * 100);
+    document.getElementById('playbackBar').classList.add('show');
+  };
+
+  audioEl.addEventListener('loadedmetadata', () => {
+    const d = isFinite(audioEl.duration) ? audioEl.duration : duration;
+    showBar(d);
+  });
+  audioEl.addEventListener('ended', () => {
+    setPlayIcon(false);
+    cancelAnimationFrame(playRafId);
+    drawFullPro();
+    document.getElementById('markerTip').classList.remove('show');
+  });
+  setTimeout(() => {
+    if (!document.getElementById('playbackBar').classList.contains('show')) showBar(duration);
+  }, 1200);
+}
+
+function togglePlay() {
+  if (!audioEl) return;
+  if (audioEl.paused) {
+    audioEl.play().then(() => { setPlayIcon(true); tickPlayhead(); }).catch(() => {});
+  } else {
+    audioEl.pause(); setPlayIcon(false); cancelAnimationFrame(playRafId);
+  }
+}
+
+function seekToTime(t) {
+  if (!audioEl) return;
+  if (!document.getElementById('playbackBar').classList.contains('show')) return;
+  audioEl.currentTime = t;
+  document.getElementById('seekBar').value = t * 100;
+  document.getElementById('playPos').textContent = fmtTime(t);
+  drawFullPro(t);
+  if (audioEl.paused) {
+    audioEl.play().then(() => { setPlayIcon(true); tickPlayhead(); }).catch(() => {});
+  }
+}
+
+function onSeek(val) {
+  if (!audioEl) return;
+  audioEl.currentTime = val / 100;
+  document.getElementById('playPos').textContent = fmtTime(audioEl.currentTime);
+  drawFullPro(audioEl.currentTime);
+}
+
+function tickPlayhead() {
+  if (!audioEl || audioEl.paused) return;
+  const cur = audioEl.currentTime;
+  document.getElementById('seekBar').value = cur * 100;
+  document.getElementById('playPos').textContent = fmtTime(cur);
+  drawFullPro(cur);
+  playRafId = requestAnimationFrame(tickPlayhead);
+}
+
+function setPlayIcon(playing) {
+  document.getElementById('playIcon').innerHTML = playing
+    ? '<rect x="4" y="3" width="4" height="12" rx="1" fill="white"/><rect x="10" y="3" width="4" height="12" rx="1" fill="white"/>'
+    : '<polygon points="5,3 15,9 5,15" fill="white"/>';
+}
+
+// ════════════════════════════════════════════════════════
+//  NEW RECORDING
+// ════════════════════════════════════════════════════════
+
+function newRecording() {
+  if (audioEl) { audioEl.pause(); audioEl.src = ''; audioEl = null; }
+  if (audioBlob) { URL.revokeObjectURL(audioBlob); audioBlob = null; }
+  cancelAnimationFrame(playRafId);
+
+  volHistory = [];
+  exprMarkers = [];
+
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('newRecRow').classList.remove('show');
+  document.getElementById('playbackBar').classList.remove('show');
+  document.getElementById('markerTip').classList.remove('show');
+  document.getElementById('waveLegend').style.display = 'none';
+  document.getElementById('timerDisp').textContent = '';
+  document.getElementById('waveHint').style.display = '';
+  document.getElementById('seekBar').value = 0;
+  document.getElementById('playPos').textContent = '0:00';
+  document.getElementById('playDur').textContent = '0:00';
+  setPlayIcon(false);
+
+  const wrap = document.getElementById('waveWrap');
+  CTX.clearRect(0, 0, wrap.clientWidth, wrap.clientHeight);
+
+  document.getElementById('scrollArea').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ════════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════════
+
+function fmtTime(s) {
+  if (s < 0 || !isFinite(s)) return '0:00';
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function loadSongPracticeState(song) {
+  const todayStr = new Date().toDateString();
+  if (song.practiceDate === todayStr) {
+    practiceCount = song.practiceCount || 0;
+    prevStopCount = song.prevStops !== undefined ? song.prevStops : null;
+  } else {
+    practiceCount = 0;
+    prevStopCount = null;
+  }
+  document.getElementById('practiceText').textContent = `今日 ${practiceCount} 回練習中`;
+}
+
+// ════════════════════════════════════════════════════════
+//  CALENDAR
+// ════════════════════════════════════════════════════════
+
+let calYear, calMonth;
+
+function getAllPracticeDates() {
+  const songs = getSongs();
+  const dates = new Set();
+  songs.forEach(song => {
+    (song.recordings || []).forEach(rec => {
+      if (rec.date) {
+        const d = new Date(rec.date);
+        dates.add(`${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`);
+      }
+    });
+  });
+  return dates;
+}
+
+function calcStreak(dates) {
+  const now = new Date();
+  const todayKey = `${now.getFullYear()}_${now.getMonth()}_${now.getDate()}`;
+  // 今日練習していれば今日から、していなければ昨日から遡る
+  const startOffset = dates.has(todayKey) ? 0 : 1;
+  let streak = 0;
+  for (let i = startOffset; i < 365; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = `${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
+    if (dates.has(key)) streak++;
+    else break;
+  }
+  return streak;
+}
+
+function renderCalendar() {
+  const now = new Date();
+  if (calYear === undefined) { calYear = now.getFullYear(); calMonth = now.getMonth(); }
+
+  const dates = getAllPracticeDates();
+  const streak = calcStreak(dates);
+
+  const banner = document.getElementById('streakBanner');
+  if (streak > 0) {
+    banner.textContent = `🔥 ${streak}日連続練習中！`;
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+  }
+
+  document.getElementById('calMonthLabel').textContent = `${calYear}年 ${calMonth + 1}月`;
+
+  const grid = document.getElementById('calGrid');
+  const firstDow = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const todayKey = `${now.getFullYear()}_${now.getMonth()}_${now.getDate()}`;
+
+  let html = ['日','月','火','水','木','金','土']
+    .map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+  for (let i = 0; i < firstDow; i++) html += '<div class="cal-day empty"></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${calYear}_${calMonth}_${d}`;
+    const hasPractice = dates.has(key);
+    const isToday = key === todayKey;
+    html += `<div class="cal-day${hasPractice ? ' has-practice' : ''}${isToday ? ' today' : ''}">
+      <div class="day-num">${d}</div>
+      ${hasPractice ? '<div class="day-dot"></div>' : ''}
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function calPrev() {
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+function calNext() {
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+}
+
+// ════════════════════════════════════════════════════════
+//  RHYTHM GRAPH
+// ════════════════════════════════════════════════════════
+
+function renderRhythmGraph() {
+  const song = getActiveSong();
+  const section = document.getElementById('graphSection');
+  if (!song || !song.recordings || song.recordings.length < 2) {
+    section.style.display = 'none';
+    return;
+  }
+
+  const recs = [...song.recordings]
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .slice(-20);
+
+  section.style.display = 'block';
+
+  // Improvement badge
+  const last = recs[recs.length - 1];
+  const prev = recs[recs.length - 2];
+  const diffEl = document.getElementById('graphDiff');
+  const diff = last.rhythm - prev.rhythm;
+  if (diff > 0) {
+    diffEl.textContent = `前回より +${diff}点！`;
+    diffEl.className = 'graph-badge graph-badge-up';
+    diffEl.style.display = 'inline-block';
+  } else if (diff < 0) {
+    diffEl.textContent = `前回より ${diff}点`;
+    diffEl.className = 'graph-badge graph-badge-dn';
+    diffEl.style.display = 'inline-block';
+  } else {
+    diffEl.style.display = 'none';
+  }
+
+  const canvas = document.getElementById('graphCanvas');
+  // Wait for layout
+  requestAnimationFrame(() => drawRhythmGraph(canvas, recs));
+}
+
+function drawRhythmGraph(canvas, recs) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth;
+  const H = canvas.clientHeight;
+  if (!W || !H) return;
+  canvas.width = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const PAD = { top: 22, right: 14, bottom: 30, left: 34 };
+  const gW = W - PAD.left - PAD.right;
+  const gH = H - PAD.top - PAD.bottom;
+
+  // Grid + Y labels
+  ctx.font = '10px DM Mono, monospace';
+  [0, 25, 50, 75, 100].forEach(v => {
+    const y = PAD.top + gH - (v / 100) * gH;
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + gW, y);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(136,146,164,0.75)';
+    ctx.textAlign = 'right';
+    ctx.fillText(v, PAD.left - 5, y + 3.5);
+  });
+
+  // X axis line
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  ctx.moveTo(PAD.left, PAD.top + gH); ctx.lineTo(PAD.left + gW, PAD.top + gH);
+  ctx.stroke();
+
+  if (recs.length < 2) return;
+
+  const pts = recs.map((r, i) => ({
+    x: PAD.left + (i / (recs.length - 1)) * gW,
+    y: PAD.top + gH - (r.rhythm / 100) * gH,
+    rhythm: r.rhythm,
+    date: new Date(r.date),
+    num: r.num
+  }));
+
+  // Area gradient fill
+  const grad = ctx.createLinearGradient(0, PAD.top, 0, PAD.top + gH);
+  grad.addColorStop(0, 'rgba(126,232,196,0.22)');
+  grad.addColorStop(1, 'rgba(126,232,196,0.01)');
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length - 1].x, PAD.top + gH);
+  ctx.lineTo(pts[0].x, PAD.top + gH);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = '#7ee8c4';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.stroke();
+
+  // Dots + labels
+  pts.forEach((p, i) => {
+    const isLast = i === pts.length - 1;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, isLast ? 5 : 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = isLast ? '#7ee8c4' : '#161920';
+    ctx.strokeStyle = '#7ee8c4';
+    ctx.lineWidth = 2;
+    ctx.fill();
+    ctx.stroke();
+
+    // Score above dot
+    ctx.fillStyle = isLast ? '#7ee8c4' : 'rgba(136,146,164,0.85)';
+    ctx.font = isLast ? 'bold 10px DM Mono, monospace' : '10px DM Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(p.rhythm, p.x, p.y - 9);
+
+    // X label (show every point if ≤8, else sparse)
+    const showLabel = recs.length <= 8 || i === 0 || i === pts.length - 1 || i % 3 === 0;
+    if (showLabel) {
+      const label = `${p.date.getMonth() + 1}/${p.date.getDate()}`;
+      ctx.fillStyle = 'rgba(136,146,164,0.7)';
+      ctx.font = '9px DM Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, p.x, PAD.top + gH + 16);
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════
+
+function init() {
+  migrateOldData();
+
+  const songs = getSongs();
+  let activeId = getActiveSongId();
+
+  if (songs.length > 0) {
+    if (!activeId || !songs.find(s => s.id === activeId)) {
+      activeId = songs[0].id;
+      setActiveSongId(activeId);
+    }
+    const song = songs.find(s => s.id === activeId);
+    if (song) {
+      document.getElementById('headerSongName').textContent = song.name;
+      loadSongPracticeState(song);
+    }
+    renderSongLists();
+    switchPage('rec');
+  } else {
+    renderSongLists();
+    switchPage('noSong');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
