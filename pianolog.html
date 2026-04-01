@@ -176,6 +176,16 @@ canvas{width:100%;height:100%;display:block}
 .seek-bar::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--mint);cursor:pointer;box-shadow:0 0 6px rgba(126,232,196,.5)}
 .seek-times{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2)}
 
+/* ── LIST PLAYBACK ── */
+.rec-playback-wrap{margin-top:10px}
+.list-play-btn{
+  padding:7px 16px;border-radius:8px;border:none;cursor:pointer;
+  background:#2a7a6a;color:#e0faf2;font-size:13px;font-weight:600;
+  font-family:inherit;transition:background .15s;
+}
+.list-play-btn:hover{background:#236358}
+.list-play-btn:active{background:#1c4f47}
+
 /* ── PERM ERROR ── */
 .perm-error{display:none;margin:10px 20px 0;background:rgba(246,91,91,.08);border:1px solid rgba(246,91,91,.35);border-radius:12px;padding:13px 15px;font-size:13px;line-height:1.7;color:#f6a3a3}
 .perm-error.show{display:block}
@@ -877,6 +887,8 @@ const SILENCE_DUR = 0.8;
 
 let audioBlob = null, audioEl = null, playRafId = null, recordedChunks = [];
 let exprMarkers = [];
+let lastAudioUrl = null;
+let listPlayingEl = null, listPlayingAudio = null;
 
 // ════════════════════════════════════════════════════════
 //  CANVAS
@@ -1142,6 +1154,13 @@ function buildRecordingDetail(el, rec) {
   const miniId = 'miniwave_' + rec.id;
   let html = `<div class="mini-wave-wrap"><canvas id="${miniId}" style="width:100%;height:100%;display:block"></canvas></div>`;
 
+  // Playback button
+  if (rec.audioUrl) {
+    html += `<div class="rec-playback-wrap">
+      <button class="list-play-btn" id="playbtn_${esc(rec.id)}" onclick="togglePlayback('${esc(rec.id)}')">▶ 再生</button>
+    </div>`;
+  }
+
   // Expression summary
   if (rec.exprSummary && rec.exprSummary.length) {
     html += `<div class="detail-section">
@@ -1298,7 +1317,14 @@ function stopRec() {
 
   mediaRecorder.onstop = () => {
     const mime = mediaRecorder.mimeType || 'audio/webm';
-    setupPlayback(new Blob(recordedChunks, { type: mime }), duration);
+    const blob = new Blob(recordedChunks, { type: mime });
+    setupPlayback(blob, duration);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      lastAudioUrl = reader.result;
+      analyze(duration);
+    };
+    reader.readAsDataURL(blob);
   };
   mediaRecorder.stop();
   micStream.getTracks().forEach(t => t.stop());
@@ -1309,8 +1335,6 @@ function stopRec() {
   document.getElementById('recBadge').classList.remove('show');
   document.getElementById('recLabel').textContent = 'タップして録音開始';
   document.getElementById('recIcon').innerHTML = '<circle cx="14" cy="14" r="10" fill="white"/>';
-
-  analyze(duration);
 }
 
 function bestMime() {
@@ -1761,7 +1785,8 @@ function analyze(duration) {
       praises: praisesData.map(p => p.text),
       weakTexts: weakTextsData,
       exprSummary,
-      waveSnap
+      waveSnap,
+      audioUrl: lastAudioUrl || null
     });
     renderSongLists();
     // カレンダーページが開いていれば即更新
@@ -1843,6 +1868,45 @@ function togglePlay() {
   } else {
     audioEl.pause(); setPlayIcon(false); cancelAnimationFrame(playRafId);
   }
+}
+
+function togglePlayback(recId) {
+  const btn = document.getElementById('playbtn_' + recId);
+  if (!btn) return;
+
+  // Stop currently playing list audio if it's a different one
+  if (listPlayingAudio && !listPlayingAudio.paused) {
+    listPlayingAudio.pause();
+    listPlayingAudio.currentTime = 0;
+    if (listPlayingEl) listPlayingEl.textContent = '▶ 再生';
+    if (listPlayingEl === btn) {
+      listPlayingEl = null;
+      listPlayingAudio = null;
+      return;
+    }
+  }
+
+  // Get audioUrl from stored recording
+  const song = getActiveSong();
+  if (!song) return;
+  const rec = (song.recordings || []).find(r => r.id === recId);
+  if (!rec || !rec.audioUrl) return;
+
+  const audio = new Audio(rec.audioUrl);
+  listPlayingAudio = audio;
+  listPlayingEl = btn;
+  btn.textContent = '⏹ 停止';
+
+  audio.addEventListener('ended', () => {
+    btn.textContent = '▶ 再生';
+    listPlayingAudio = null;
+    listPlayingEl = null;
+  });
+  audio.play().catch(() => {
+    btn.textContent = '▶ 再生';
+    listPlayingAudio = null;
+    listPlayingEl = null;
+  });
 }
 
 function seekToTime(t) {
