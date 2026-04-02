@@ -143,6 +143,13 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .metro-btn:hover{background:#236358}
 .metro-btn.active{background:var(--mint);color:#0d2820}
 .metro-btn.active:hover{background:#5ecfad}
+.metro-select{
+  flex-shrink:0;padding:5px 8px;border-radius:8px;
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--text);font-size:12px;font-family:inherit;
+  cursor:pointer;outline:none;
+}
+.metro-select:focus{border-color:#2a7a6a}
 
 /* ── THRESHOLD ── */
 .threshold-section{padding:11px 20px 0}
@@ -579,6 +586,12 @@ canvas.graph-cvs{width:100%;height:150px;display:block}
           <div class="metro-label">メトロノーム</div>
           <input type="range" id="bpmSlider" min="40" max="200" value="80" oninput="onBpm(this.value)">
           <div class="metro-bpm-val"><span id="bpmVal">80</span> BPM</div>
+          <select class="metro-select" id="metroSound">
+            <option value="kachi">カチッ</option>
+            <option value="ko">コッ</option>
+            <option value="pi">ピッ</option>
+            <option value="don">ドン</option>
+          </select>
           <button class="metro-btn" id="metroBtn" onclick="toggleMetronome()">▶ 開始</button>
         </div>
       </div>
@@ -1281,17 +1294,47 @@ function onBpm(v) {
 }
 
 function metroClick(isAccent) {
+  const pattern = document.getElementById('metroSound').value;
   const osc = metroCtx.createOscillator();
   const gain = metroCtx.createGain();
   osc.connect(gain);
   gain.connect(metroCtx.destination);
-  osc.frequency.value = isAccent ? 1800 : 1200;
-  osc.type = 'square';
-  gain.gain.setValueAtTime(0, metroNextTime);
-  gain.gain.linearRampToValueAtTime(isAccent ? 0.35 : 0.2, metroNextTime + 0.002);
-  gain.gain.exponentialRampToValueAtTime(0.001, metroNextTime + 0.05);
-  osc.start(metroNextTime);
-  osc.stop(metroNextTime + 0.06);
+
+  const t = metroNextTime;
+  if (pattern === 'kachi') {
+    // カチッ：square波・高め
+    osc.type = 'square';
+    osc.frequency.value = isAccent ? 1800 : 1200;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(isAccent ? 0.35 : 0.2, t + 0.002);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+    osc.start(t); osc.stop(t + 0.06);
+  } else if (pattern === 'ko') {
+    // コッ：triangle波・中域・柔らかい
+    osc.type = 'triangle';
+    osc.frequency.value = isAccent ? 900 : 650;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(isAccent ? 0.55 : 0.35, t + 0.003);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    osc.start(t); osc.stop(t + 0.09);
+  } else if (pattern === 'pi') {
+    // ピッ：sine波・高周波・電子音
+    osc.type = 'sine';
+    osc.frequency.value = isAccent ? 2400 : 1800;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(isAccent ? 0.4 : 0.25, t + 0.001);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+    osc.start(t); osc.stop(t + 0.05);
+  } else {
+    // ドン：sine波・低域・ピッチダウン
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(isAccent ? 180 : 120, t);
+    osc.frequency.exponentialRampToValueAtTime(isAccent ? 50 : 40, t + 0.12);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(isAccent ? 0.9 : 0.6, t + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    osc.start(t); osc.stop(t + 0.16);
+  }
 }
 
 function metroSchedule() {
