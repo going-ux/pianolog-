@@ -130,6 +130,20 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .measure-sep{color:var(--text2);font-size:20px;padding-bottom:9px}
 .practice-badge{margin-top:10px;background:rgba(91,156,246,.1);border:1px solid rgba(91,156,246,.28);border-radius:10px;padding:9px 14px;font-size:14px;color:var(--blue);font-weight:500;display:flex;align-items:center;gap:8px}
 
+/* ── METRONOME ── */
+.metro-section{padding:12px 20px 0}
+.metro-row{display:flex;align-items:center;gap:10px}
+.metro-label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+.metro-bpm-val{font-family:'DM Mono',monospace;font-size:13px;color:var(--mint);min-width:46px;text-align:right;font-weight:500}
+.metro-btn{
+  flex-shrink:0;padding:5px 13px;border-radius:8px;border:none;cursor:pointer;
+  background:#2a7a6a;color:#e0faf2;font-size:12px;font-weight:600;font-family:inherit;
+  transition:background .15s;white-space:nowrap;
+}
+.metro-btn:hover{background:#236358}
+.metro-btn.active{background:var(--mint);color:#0d2820}
+.metro-btn.active:hover{background:#5ecfad}
+
 /* ── THRESHOLD ── */
 .threshold-section{padding:11px 20px 0}
 .threshold-row{display:flex;align-items:center;gap:10px}
@@ -559,6 +573,16 @@ canvas.graph-cvs{width:100%;height:150px;display:block}
         </div>
       </div>
 
+      <!-- METRONOME -->
+      <div class="metro-section">
+        <div class="metro-row">
+          <div class="metro-label">メトロノーム</div>
+          <input type="range" id="bpmSlider" min="40" max="200" value="80" oninput="onBpm(this.value)">
+          <div class="metro-bpm-val"><span id="bpmVal">80</span> BPM</div>
+          <button class="metro-btn" id="metroBtn" onclick="toggleMetronome()">▶ 開始</button>
+        </div>
+      </div>
+
       <!-- THRESHOLD -->
       <div class="threshold-section">
         <div class="threshold-row">
@@ -889,6 +913,7 @@ let audioBlob = null, audioEl = null, playRafId = null, recordedChunks = [];
 let exprMarkers = [];
 let lastAudioUrl = null;
 let listPlayingEl = null, listPlayingAudio = null;
+let metroBpm = 80, metroCtx = null, metroNextTime = 0, metroCount = 0, metroTimerId = null;
 
 // ════════════════════════════════════════════════════════
 //  CANVAS
@@ -1247,6 +1272,63 @@ function switchTab(i) {
 function onThreshold(v) { threshold = +v; document.getElementById('thVal').textContent = v; }
 
 // ════════════════════════════════════════════════════════
+//  METRONOME
+// ════════════════════════════════════════════════════════
+
+function onBpm(v) {
+  metroBpm = +v;
+  document.getElementById('bpmVal').textContent = v;
+}
+
+function metroClick(isAccent) {
+  const osc = metroCtx.createOscillator();
+  const gain = metroCtx.createGain();
+  osc.connect(gain);
+  gain.connect(metroCtx.destination);
+  osc.frequency.value = isAccent ? 1800 : 1200;
+  osc.type = 'square';
+  gain.gain.setValueAtTime(0, metroNextTime);
+  gain.gain.linearRampToValueAtTime(isAccent ? 0.35 : 0.2, metroNextTime + 0.002);
+  gain.gain.exponentialRampToValueAtTime(0.001, metroNextTime + 0.05);
+  osc.start(metroNextTime);
+  osc.stop(metroNextTime + 0.06);
+}
+
+function metroSchedule() {
+  const interval = 60 / metroBpm;
+  while (metroNextTime < metroCtx.currentTime + 0.1) {
+    metroClick(metroCount % 4 === 0);
+    metroNextTime += interval;
+    metroCount++;
+  }
+  metroTimerId = setTimeout(metroSchedule, 25);
+}
+
+function startMetronome() {
+  if (metroCtx) { metroCtx.close(); metroCtx = null; }
+  metroCtx = new (window.AudioContext || window.webkitAudioContext)();
+  metroNextTime = metroCtx.currentTime + 0.05;
+  metroCount = 0;
+  metroSchedule();
+  const btn = document.getElementById('metroBtn');
+  btn.textContent = '⏹ 停止';
+  btn.classList.add('active');
+}
+
+function stopMetronome() {
+  clearTimeout(metroTimerId);
+  metroTimerId = null;
+  if (metroCtx) { metroCtx.close().catch(() => {}); metroCtx = null; }
+  const btn = document.getElementById('metroBtn');
+  btn.textContent = '▶ 開始';
+  btn.classList.remove('active');
+}
+
+function toggleMetronome() {
+  metroCtx ? stopMetronome() : startMetronome();
+}
+
+// ════════════════════════════════════════════════════════
 //  RECORDING
 // ════════════════════════════════════════════════════════
 
@@ -1335,6 +1417,7 @@ function stopRec() {
   document.getElementById('recBadge').classList.remove('show');
   document.getElementById('recLabel').textContent = 'タップして録音開始';
   document.getElementById('recIcon').innerHTML = '<circle cx="14" cy="14" r="10" fill="white"/>';
+  if (metroCtx) stopMetronome();
 }
 
 function bestMime() {
